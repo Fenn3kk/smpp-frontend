@@ -8,7 +8,7 @@ import 'package:smpp_flutter/models/atividade.dart';
 import 'package:smpp_flutter/models/cidade.dart';
 import 'package:smpp_flutter/models/vulnerabilidade.dart';
 import 'package:smpp_flutter/providers/propriedade_provider.dart';
-import 'package:smpp_flutter/rotas/app_rotas.dart';
+import 'package:smpp_flutter/routes/app_rotas.dart';
 import 'package:smpp_flutter/services/propriedade_service.dart';
 import 'package:smpp_flutter/widgets/app_formatters.dart';
 

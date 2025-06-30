@@ -2,19 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:smpp_flutter/models/propriedade.dart';
-import 'package:smpp_flutter/rotas/app_rotas.dart';
-
-// Importe todas as suas páginas
+import 'package:smpp_flutter/routes/app_rotas.dart';
 import 'package:smpp_flutter/pages/login_page.dart';
 import 'package:smpp_flutter/pages/home_page.dart';
 import 'package:smpp_flutter/pages/cadastro_page.dart';
-import 'package:smpp_flutter/pages/admin_cadastro_page.dart';
+import 'package:smpp_flutter/pages/admin_usuario_create_page.dart';
 import 'package:smpp_flutter/pages/full_map_page.dart';
 import 'package:smpp_flutter/pages/ocorrencia_create_page.dart';
-import 'package:smpp_flutter/pages/ocorrencia_page.dart';
+import 'package:smpp_flutter/pages/ocorrencia_list_page.dart';
 import 'package:smpp_flutter/pages/propriedade_create_page.dart';
 import 'package:smpp_flutter/pages/propriedade_edit_page.dart';
-import 'package:smpp_flutter/pages/propriedade_page.dart';
+import 'package:smpp_flutter/pages/propriedade_list_page.dart';
 import 'package:smpp_flutter/pages/usuario_edit_page.dart';
 
 class AppWidget extends StatelessWidget {

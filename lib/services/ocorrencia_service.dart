@@ -1,10 +1,8 @@
-// lib/services/ocorrencia_service.dart
-
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../configs/app_config.dart';
+import '../config/app_config.dart';
 import '../models/incidente.dart';
 import '../models/tipo_ocorrencia.dart';
 import '../models/ocorrencia.dart';

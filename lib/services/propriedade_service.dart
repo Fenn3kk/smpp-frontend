@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smpp_flutter/models/atividade.dart';
 import 'package:smpp_flutter/models/cidade.dart';
 import 'package:smpp_flutter/models/vulnerabilidade.dart';
-import '../configs/app_config.dart';
+import '../config/app_config.dart';
 import '../models/propriedade.dart';
 
 class PropriedadeService {

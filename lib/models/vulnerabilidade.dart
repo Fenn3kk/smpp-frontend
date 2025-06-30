@@ -7,13 +7,15 @@ class Vulnerabilidade {
     required this.nome,
   });
 
+  /// Cria uma instância a partir de um JSON.
   factory Vulnerabilidade.fromJson(Map<String, dynamic> json) {
     return Vulnerabilidade(
-      id: json['id'],
-      nome: json['nome'],
+      id: json['id']?.toString() ?? '',
+      nome: json['nome']?.toString() ?? 'Vulnerabilidade desconhecida',
     );
   }
 
+  /// Converte a instância para um mapa JSON.
   Map<String, dynamic> toJson() {
     return {
       'id': id,

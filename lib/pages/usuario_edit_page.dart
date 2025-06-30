@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smpp_flutter/models/usuario.dart';
 import 'package:smpp_flutter/providers/usuario_provider.dart';
-import 'package:smpp_flutter/rotas/app_rotas.dart';
+import 'package:smpp_flutter/routes/app_rotas.dart';
 import 'package:smpp_flutter/widgets/app_formatters.dart';
 
 class EditarUsuarioPage extends StatefulWidget {

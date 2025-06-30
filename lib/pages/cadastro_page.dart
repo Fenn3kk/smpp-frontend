@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:smpp_flutter/rotas/app_rotas.dart';
+import 'package:smpp_flutter/routes/app_rotas.dart';
 import 'package:smpp_flutter/services/auth_service.dart';
 import 'package:smpp_flutter/widgets/app_formatters.dart';
 

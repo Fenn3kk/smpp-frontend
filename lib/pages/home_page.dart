@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:smpp_flutter/pages/propriedade_page.dart';
+import 'package:smpp_flutter/pages/propriedade_list_page.dart';
 import 'package:smpp_flutter/providers/propriedade_provider.dart';
-import 'package:smpp_flutter/rotas/app_rotas.dart';
+import 'package:smpp_flutter/routes/app_rotas.dart';
 import '../widgets/user_drawer.dart';
 
 class HomePage extends StatefulWidget {

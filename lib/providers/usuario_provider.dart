@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:smpp_flutter/configs/app_config.dart';
+import 'package:smpp_flutter/config/app_config.dart';
 import 'package:smpp_flutter/models/usuario.dart';
 import 'package:smpp_flutter/services/auth_service.dart';
 import 'package:smpp_flutter/services/usuario_service.dart';

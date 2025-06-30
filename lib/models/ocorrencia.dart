@@ -9,7 +9,7 @@ class Ocorrencia {
   final DateTime data;
   final String? descricao;
   final List<FotoOcorrencia> fotos;
-  final Propriedade propriedade;
+  final Propriedade? propriedade; // Pode ser nulo dependendo do contexto da API
   final List<Incidente> incidentes;
 
   const Ocorrencia({
@@ -18,28 +18,50 @@ class Ocorrencia {
     required this.data,
     this.descricao,
     required this.fotos,
-    required this.propriedade,
+    this.propriedade,
     required this.incidentes,
   });
 
+  /// Cria uma instância de Ocorrencia a partir de um JSON de forma segura.
   factory Ocorrencia.fromJson(Map<String, dynamic> json) {
+    // Função auxiliar para processar listas de forma segura
+    List<T> parseList<T>(String key, T Function(dynamic) fromJson) {
+      return (json[key] as List<dynamic>?)?.map(fromJson).toList() ?? [];
+    }
+
     return Ocorrencia(
-      id: json['id'],
-      // Chama os construtores .fromJson() dos modelos aninhados
-      tipoOcorrencia: TipoOcorrencia.fromJson(json['tipoOcorrencia']),
-      // Converte a string de data (ex: "2025-06-27") para um objeto DateTime
-      data: DateTime.parse(json['data']),
-      descricao: json['descricao'],
-      propriedade: Propriedade.fromJson(json['propriedade']),
+      id: json['id']?.toString() ?? '',
 
-      // Mapeia as listas de JSON para listas de objetos
-      fotos: (json['fotos'] as List)
-          .map((item) => FotoOcorrencia.fromJson(item))
-          .toList(),
+      tipoOcorrencia: json['tipoOcorrencia'] != null
+          ? TipoOcorrencia.fromJson(json['tipoOcorrencia'])
+          : const TipoOcorrencia(id: '', nome: 'Desconhecido'), // Valor padrão
 
-      incidentes: (json['incidentes'] as List)
-          .map((item) => Incidente.fromJson(item))
-          .toList(),
+      data: json['data'] != null
+          ? DateTime.tryParse(json['data'].toString()) ?? DateTime.now()
+          : DateTime.now(), // Valor padrão
+
+      descricao: json['descricao'] as String?,
+
+      // A propriedade pode não vir em todas as respostas da API, então tratamos o nulo.
+      propriedade: json['propriedade'] != null
+          ? Propriedade.fromJson(json['propriedade'])
+          : null,
+
+      fotos: parseList('fotos', (item) => FotoOcorrencia.fromJson(item)),
+      incidentes: parseList('incidentes', (item) => Incidente.fromJson(item)),
     );
+  }
+
+  /// Converte a instância do objeto Dart para um mapa JSON.
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'tipoOcorrencia': tipoOcorrencia.toJson(),
+      'data': data.toIso8601String().split('T')[0], // Envia apenas a data
+      'descricao': descricao,
+      'fotos': fotos.map((foto) => foto.toJson()).toList(),
+      'propriedade': propriedade?.toJson(), // Usa o operador '?' para segurança
+      'incidentes': incidentes.map((incidente) => incidente.toJson()).toList(),
+    };
   }
 }

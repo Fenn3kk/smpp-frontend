@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smpp_flutter/providers/usuario_provider.dart';
-import 'package:smpp_flutter/rotas/app_rotas.dart';
+import 'package:smpp_flutter/routes/app_rotas.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

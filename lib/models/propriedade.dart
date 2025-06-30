@@ -7,53 +7,65 @@ import 'vulnerabilidade.dart';
 class Propriedade {
   final String id;
   final String nome;
-  final Cidade cidade; // Objeto aninhado
+  final Cidade cidade;
   final String coordenadas;
-  final String proprietario;
-  final String telefoneProprietario;
-  final Usuario usuario; // Objeto aninhado
-  final List<Atividade> atividades; // Lista de objetos aninhados
-  final List<Vulnerabilidade> vulnerabilidades; // Lista de objetos aninhados
-  final List<Ocorrencia> ocorrencias; // Lista de objetos aninhados
+  final String? proprietario;
+  final String? telefoneProprietario;
+  final Usuario usuario;
+  final List<Atividade> atividades;
+  final List<Vulnerabilidade> vulnerabilidades;
+  final List<Ocorrencia> ocorrencias;
 
   const Propriedade({
     required this.id,
     required this.nome,
     required this.cidade,
     required this.coordenadas,
-    required this.proprietario,
-    required this.telefoneProprietario,
+    this.proprietario,
+    this.telefoneProprietario,
     required this.usuario,
     required this.atividades,
     required this.vulnerabilidades,
     required this.ocorrencias,
   });
 
+  /// Cria uma instância de Propriedade a partir de um JSON de forma segura.
   factory Propriedade.fromJson(Map<String, dynamic> json) {
+    List<T> parseList<T>(String key, T Function(dynamic) fromJson) {
+      return (json[key] as List<dynamic>?)?.map(fromJson).toList() ?? [];
+    }
+
     return Propriedade(
-      id: json['id'],
-      nome: json['nome'],
-      // Chama o construtor .fromJson() do modelo aninhado
-      cidade: Cidade.fromJson(json['cidade']),
-      coordenadas: json['coordenadas'],
-      proprietario: json['proprietario'],
-      telefoneProprietario: json['telefoneProprietario'],
-      // Chama o construtor .fromJson() do modelo aninhado
-      usuario: Usuario.fromJson(json['usuario']),
-
-      // Mapeia a lista de JSONs para uma lista de objetos Atividade
-      atividades: (json['atividades'] as List)
-          .map((item) => Atividade.fromJson(item))
-          .toList(),
-
-      // O mesmo para as outras listas
-      vulnerabilidades: (json['vulnerabilidades'] as List)
-          .map((item) => Vulnerabilidade.fromJson(item))
-          .toList(),
-
-      ocorrencias: (json['ocorrencias'] as List)
-          .map((item) => Ocorrencia.fromJson(item))
-          .toList(),
+      id: json['id']?.toString() ?? '',
+      nome: json['nome']?.toString() ?? 'Propriedade sem nome',
+      coordenadas: json['coordenadas']?.toString() ?? '0.0,0.0',
+      cidade: json['cidade'] != null
+          ? Cidade.fromJson(json['cidade'])
+          : const Cidade(id: '', nome: 'Inválida'),
+      usuario: json['usuario'] != null
+          ? Usuario.fromJson(json['usuario'])
+          : const Usuario(id: '', nome: 'Inválido', email: '', telefone: '', tipoUsuario: 'COMUM'),
+      proprietario: json['proprietario'] as String?,
+      telefoneProprietario: json['telefoneProprietario'] as String?,
+      atividades: parseList('atividades', (item) => Atividade.fromJson(item)),
+      vulnerabilidades: parseList('vulnerabilidades', (item) => Vulnerabilidade.fromJson(item)),
+      ocorrencias: parseList('ocorrencias', (item) => Ocorrencia.fromJson(item)),
     );
+  }
+
+  /// Converte a instância do objeto Dart para um mapa JSON.
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nome': nome,
+      'cidade': cidade.toJson(),
+      'coordenadas': coordenadas,
+      'proprietario': proprietario,
+      'telefoneProprietario': telefoneProprietario,
+      'usuario': usuario.toJson(),
+      'atividades': atividades.map((item) => item.toJson()).toList(),
+      'vulnerabilidades': vulnerabilidades.map((item) => item.toJson()).toList(),
+      'ocorrencias': ocorrencias.map((item) => item.toJson()).toList(),
+    };
   }
 }

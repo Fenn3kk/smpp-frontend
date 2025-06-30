@@ -7,15 +7,16 @@ class TipoOcorrencia {
     required this.nome,
   });
 
-  /// Cria uma instância de TipoOcorrencia a partir de um mapa JSON.
+  /// Construtor de fábrica para criar uma instância a partir de um JSON.
   factory TipoOcorrencia.fromJson(Map<String, dynamic> json) {
     return TipoOcorrencia(
-      id: json['id'],
-      nome: json['nome'],
+      id: json['id']?.toString() ?? '',
+      nome: json['nome']?.toString() ?? 'Tipo de ocorrência desconhecido',
     );
   }
 
-  /// Converte a instância de TipoOcorrencia para um mapa JSON.
+  /// Converte a instância do objeto Dart para um mapa JSON.
+  /// Útil se você precisar enviar este objeto de volta para a API.
   Map<String, dynamic> toJson() {
     return {
       'id': id,
