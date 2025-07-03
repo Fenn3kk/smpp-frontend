@@ -32,7 +32,6 @@ class _CadastroPageState extends State<CadastroPage> {
     });
 
     try {
-      // A UI agora apenas chama o método de registro do serviço.
       await _authService.register(
         nome: _nomeController.text.trim(),
         email: _emailController.text.trim(),
@@ -44,7 +43,6 @@ class _CadastroPageState extends State<CadastroPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Cadastro realizado com sucesso! Faça o login.'), backgroundColor: Colors.green),
       );
-      // Leva o usuário para o login, limpando a pilha de navegação.
       Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
 
     } catch (e) {
@@ -115,7 +113,6 @@ class _CadastroPageState extends State<CadastroPage> {
                   controller: _telefoneController,
                   decoration: const InputDecoration(labelText: 'Telefone', prefixIcon: Icon(Icons.phone_outlined), border: OutlineInputBorder()),
                   keyboardType: TextInputType.phone,
-                  // USA A MÁSCARA REUTILIZÁVEL
                   inputFormatters: [AppFormatters.dynamicPhoneMask],
                   validator: (v) {
                     final digits = v?.replaceAll(RegExp(r'\D'), '') ?? '';

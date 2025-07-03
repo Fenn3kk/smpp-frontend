@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:smpp_flutter/models/propriedade.dart';
 import 'package:smpp_flutter/providers/propriedade_provider.dart';
 import 'package:smpp_flutter/routes/app_rotas.dart';
-import 'package:smpp_flutter/widgets/info_row.dart';
 
 class PropriedadesPage extends StatefulWidget {
   const PropriedadesPage({super.key});
@@ -22,6 +21,7 @@ class _PropriedadesPageState extends State<PropriedadesPage> {
   }
 
   Future<void> _excluir(PropriedadeProvider provider, Propriedade propriedade) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -37,11 +37,11 @@ class _PropriedadesPageState extends State<PropriedadesPage> {
     if (confirmar == true && mounted) {
       try {
         await provider.deletePropriedade(propriedade.id);
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           const SnackBar(content: Text('Propriedade excluída com sucesso'), backgroundColor: Colors.green),
         );
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
         );
       }
@@ -49,28 +49,37 @@ class _PropriedadesPageState extends State<PropriedadesPage> {
   }
 
   void _navegarPara(String routeName, Propriedade propriedade) async {
-    final foiModificado = await Navigator.pushNamed(context, routeName, arguments: propriedade);
+    final navigator = Navigator.of(context);
+    final provider = Provider.of<PropriedadeProvider>(context, listen: false);
+
+    final foiModificado = await navigator.pushNamed(routeName, arguments: propriedade);
+
     if (foiModificado == true && mounted) {
-      Provider.of<PropriedadeProvider>(context, listen: false).fetchPropriedades();
+      provider.fetchPropriedades();
     }
   }
 
-  void _navegarParaMapa(Propriedade propriedade) {
+  void _navegarParaMapa(Propriedade propriedade) async {
+    final navigator = Navigator.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     try {
       final parts = propriedade.coordenadas.split(',');
       if (parts.length == 2) {
         final lat = double.tryParse(parts[0]);
         final lng = double.tryParse(parts[1]);
         if (lat != null && lng != null) {
-          Navigator.pushNamed(
-            context,
+          await navigator.pushNamed(
             AppRoutes.fullMap,
-            arguments: LatLng(lat, lng),
+            arguments: {
+              'coordenada': LatLng(lat, lng),
+              'isReadOnly': true,
+            },
           );
         }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         const SnackBar(content: Text('Coordenadas inválidas.')),
       );
     }
@@ -90,7 +99,7 @@ class _PropriedadesPageState extends State<PropriedadesPage> {
           body = const Center(child: Text('Nenhuma propriedade cadastrada.'));
         } else {
           body = ListView.builder(
-            padding: const EdgeInsets.fromLTRB(8, 16, 8, 90),
+            padding: const EdgeInsets.fromLTRB(1, 1, 1, 70),
             itemCount: provider.propriedades.length,
             itemBuilder: (context, index) {
               final p = provider.propriedades[index];
@@ -136,7 +145,6 @@ class _PropriedadesPageState extends State<PropriedadesPage> {
                           const SizedBox(height: 16),
                           _buildDetailItem(context, Icons.person_outline, 'Proprietário', p.proprietario),
                           _buildDetailItem(context, Icons.phone_outlined, 'Telefone', p.telefoneProprietario),
-                          // CORREÇÃO: Substituído por um link clicável
                           _buildMapLink(context, p),
                           const SizedBox(height: 16),
                           _buildChipSection(context, 'Atividades', Icons.agriculture_outlined, p.atividades.map((a) => a.nome).toList()),
@@ -175,7 +183,6 @@ class _PropriedadesPageState extends State<PropriedadesPage> {
     );
   }
 
-  /// Widget auxiliar para criar a seção de chips.
   Widget _buildChipSection(BuildContext context, String title, IconData icon, List<String> items) {
     final themeColor = Theme.of(context).colorScheme.primary;
     return Column(
@@ -200,7 +207,6 @@ class _PropriedadesPageState extends State<PropriedadesPage> {
     );
   }
 
-  /// Widget auxiliar para criar um item de detalhe com layout vertical.
   Widget _buildDetailItem(BuildContext context, IconData icon, String label, String? value) {
     final theme = Theme.of(context);
     return Padding(
@@ -231,7 +237,6 @@ class _PropriedadesPageState extends State<PropriedadesPage> {
     );
   }
 
-  /// NOVO WIDGET AUXILIAR: Cria um link clicável para abrir o mapa.
   Widget _buildMapLink(BuildContext context, Propriedade propriedade) {
     final theme = Theme.of(context);
     return Padding(

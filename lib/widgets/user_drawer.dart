@@ -8,7 +8,6 @@ class UserDrawerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Usa um Consumer para ouvir as mudanças do UsuarioProvider
     return Consumer<UsuarioProvider>(
       builder: (context, userProvider, child) {
         final usuario = userProvider.currentUser;
@@ -67,9 +66,7 @@ class UserDrawerWidget extends StatelessWidget {
                 leading: const Icon(Icons.logout, color: Colors.red),
                 title: const Text('Sair'),
                 onTap: () async {
-                  // Chama o método de logout do provider
                   await userProvider.logout();
-                  // Navega para a tela de login, garantindo que não haja contexto antigo
                   Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
                 },
               ),

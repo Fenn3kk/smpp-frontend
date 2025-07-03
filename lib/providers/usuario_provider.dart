@@ -41,48 +41,31 @@ class UsuarioProvider with ChangeNotifier {
     }
   }
 
-  /// Orquestra o processo de login.
   Future<void> login(String email, String senha) async {
     try {
-      // 1. Chama o AuthService para autenticar e salvar o token.
       final authData = await _authService.login(email, senha);
 
-      // 2. Se autenticado, busca os dados completos do usuário.
       final usuarioId = authData['usuarioId'];
       _currentUser = await _userService.buscarUsuarioById(usuarioId);
 
-      notifyListeners(); // Notifica a UI que o usuário mudou.
+      notifyListeners();
     } catch (e) {
       _currentUser = null;
       notifyListeners();
-      // Re-lança a exceção para que a UI possa pegá-la e mostrar o erro.
       throw e;
     }
   }
 
-  /// Atualiza os dados do usuário e, se bem-sucedido, busca os dados atualizados.
   Future<void> updateUser(Map<String, dynamic> dto) async {
     if (_currentUser == null) throw Exception("Usuário não autenticado.");
-
-    // Se uma nova senha foi fornecida, reautentica primeiro para confirmar a identidade.
-    if (dto['senhaAtual'] != null && dto['senhaAtual'].isNotEmpty) {
-      await _authService.reauthenticate(dto['senhaAtual']);
-    }
-
     final updatedUser = await _userService.updateUsuario(_currentUser!.id, dto);
     _currentUser = updatedUser;
-
-    // Se a senha foi alterada, força um novo login para obter um novo token.
-    if (dto['senha'] != null && dto['senha'].isNotEmpty) {
-      await login(_currentUser!.email, dto['senha']);
-    }
-
     notifyListeners();
   }
 
   Future<void> reauthenticate(String senha) async {
     final prefs = await SharedPreferences.getInstance();
-    final email = prefs.getString('userEmail'); // Precisamos salvar o email no login
+    final email = prefs.getString('userEmail');
 
     if (email == null) {
       throw Exception('Sessão inválida. Por favor, faça login novamente.');
@@ -95,11 +78,9 @@ class UsuarioProvider with ChangeNotifier {
       body: jsonEncode({'email': email, 'senha': senha}),
     );
 
-    // Se o login não for bem-sucedido, a senha está incorreta.
     if (response.statusCode != 200) {
       throw Exception('Senha atual incorreta.');
     }
-    // Se deu 200, não precisamos fazer nada, apenas deixar a execução continuar.
   }
 
   /// Exclui o usuário atual após confirmar a senha.
@@ -108,7 +89,7 @@ class UsuarioProvider with ChangeNotifier {
 
     await _authService.reauthenticate(senhaAtual);
     await _userService.deleteUsuario(_currentUser!.id);
-    await logout(); // O logout já limpa os dados e notifica
+    await logout();
   }
 
   Future<void> logout() async {

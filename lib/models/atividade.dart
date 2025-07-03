@@ -7,7 +7,6 @@ class Atividade {
     required this.nome,
   });
 
-  /// Construtor de fábrica para criar uma instância a partir de um JSON.
   factory Atividade.fromJson(Map<String, dynamic> json) {
     return Atividade(
       id: json['id']?.toString() ?? '',
@@ -15,7 +14,6 @@ class Atividade {
     );
   }
 
-  /// Converte a instância do objeto Dart para um mapa JSON.
   Map<String, dynamic> toJson() {
     return {
       'id': id,

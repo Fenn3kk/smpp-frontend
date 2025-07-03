@@ -29,16 +29,13 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      // A UI agora apenas chama o método de login do provider.
       await Provider.of<UsuarioProvider>(context, listen: false)
           .login(_emailController.text.trim(), _senhaController.text);
 
-      // Se a linha acima não lançar uma exceção, o login foi bem-sucedido.
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed(AppRoutes.home);
 
     } catch (e) {
-      // Se o provider lançar uma exceção, a UI a captura aqui.
       setState(() {
         _erro = e.toString().replaceFirst('Exception: ', '');
       });

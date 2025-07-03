@@ -29,7 +29,6 @@ class Propriedade {
     required this.ocorrencias,
   });
 
-  /// Cria uma instância de Propriedade a partir de um JSON de forma segura.
   factory Propriedade.fromJson(Map<String, dynamic> json) {
     List<T> parseList<T>(String key, T Function(dynamic) fromJson) {
       return (json[key] as List<dynamic>?)?.map(fromJson).toList() ?? [];
@@ -53,7 +52,6 @@ class Propriedade {
     );
   }
 
-  /// Converte a instância do objeto Dart para um mapa JSON.
   Map<String, dynamic> toJson() {
     return {
       'id': id,

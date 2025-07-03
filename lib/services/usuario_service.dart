@@ -14,7 +14,6 @@ class UsuarioService {
     };
   }
 
-  /// Busca um usuário pelo seu ID.
   Future<Usuario> buscarUsuarioById(String id) async {
     final headers = await _getAuthHeaders();
     final url = Uri.parse('${AppConfig.baseUrl}/usuarios/$id');
@@ -26,7 +25,6 @@ class UsuarioService {
     throw Exception('Falha ao carregar dados do usuário: ${response.statusCode}');
   }
 
-  /// Atualiza os dados de um usuário.
   Future<Usuario> updateUsuario(String id, Map<String, dynamic> dto) async {
     final headers = await _getAuthHeaders();
     final url = Uri.parse('${AppConfig.baseUrl}/usuarios/$id');
@@ -60,7 +58,6 @@ class UsuarioService {
     }
   }
 
-  /// Exclui o usuário.
   Future<void> deleteUsuario(String id) async {
     final headers = await _getAuthHeaders();
     final url = Uri.parse('${AppConfig.baseUrl}/usuarios/$id');

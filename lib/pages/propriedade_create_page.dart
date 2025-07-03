@@ -106,7 +106,7 @@ class _PropriedadeFormPageState extends State<PropriedadeFormPage> {
 
     final propriedadeDto = {
       'cidadeId': _cidadeSelecionadaId,
-      'nome': _nomeController.text,
+      'nome': _nomeController.text.toUpperCase(),
       'coordenadas': '${_coordenadaSelecionada!.latitude},${_coordenadaSelecionada!.longitude}',
       'proprietario': _souProprietario ? null : _proprietarioController.text,
       'telefoneProprietario': _souProprietario ? null : _telefoneController.text,
@@ -130,9 +130,13 @@ class _PropriedadeFormPageState extends State<PropriedadeFormPage> {
 
   void _abrirMapaCompleto() async {
     final LatLng? resultado = await Navigator.pushNamed(
-        context,
-        AppRoutes.fullMap,
-        arguments: _coordenadaSelecionada ?? const LatLng(-29.68, -53.80)
+      context,
+      AppRoutes.fullMap,
+      arguments: {
+        'coordenada': _coordenadaSelecionada ?? const LatLng(-29.6843, -53.8016),
+        'isReadOnly': false,
+      },
+
     ) as LatLng?;
 
     if (resultado != null) {
@@ -170,6 +174,7 @@ class _PropriedadeFormPageState extends State<PropriedadeFormPage> {
               TextFormField(
                 controller: _nomeController,
                 decoration: const InputDecoration(labelText: 'Nome da Propriedade *', border: OutlineInputBorder()),
+                maxLength: 50,
                 validator: (v) => v == null || v.isEmpty ? 'Campo obrigatório' : null,
               ),
               const SizedBox(height: 16),
@@ -222,7 +227,6 @@ class _PropriedadeFormPageState extends State<PropriedadeFormPage> {
                   controller: _telefoneController,
                   decoration: const InputDecoration(labelText: 'Telefone do Proprietário *', border: OutlineInputBorder()),
                   keyboardType: TextInputType.phone,
-                  // 4. USA A MÁSCARA REUTILIZÁVEL
                   inputFormatters: [AppFormatters.dynamicPhoneMask],
                   validator: (v) {
                     if (_souProprietario) return null;

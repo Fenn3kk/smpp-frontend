@@ -4,22 +4,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 
 class AuthService {
-  /// Tenta autenticar o usuário na API.
   Future<Map<String, dynamic>> login(String email, String senha) async {
-    // ... seu código de login existente ...
     final url = Uri.parse('${AppConfig.baseUrl}/auth/login');
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json; charset=UTF-8'},
       body: jsonEncode({'email': email, 'senha': senha}),
     );
+
     if (response.statusCode == 200) {
       final body = jsonDecode(response.body);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('jwt', body['token']);
       await prefs.setString('usuarioId', body['usuarioId'].toString());
       await prefs.setString('userEmail', email);
-
       return body;
     } else {
       throw Exception('Credenciais inválidas.');
@@ -28,7 +26,7 @@ class AuthService {
 
   Future<void> reauthenticate(String senha) async {
     final prefs = await SharedPreferences.getInstance();
-    final email = prefs.getString('userEmail'); // Precisamos salvar o email no login
+    final email = prefs.getString('userEmail');
 
     if (email == null) {
       throw Exception('Sessão inválida. Por favor, faça login novamente.');
@@ -41,14 +39,11 @@ class AuthService {
       body: jsonEncode({'email': email, 'senha': senha}),
     );
 
-    // Se o login não for bem-sucedido, a senha está incorreta.
     if (response.statusCode != 200) {
       throw Exception('Senha atual incorreta.');
     }
-    // Se deu 200, não precisamos fazer nada, apenas deixar a execução continuar.
   }
 
-  /// Registra um novo usuário.
   Future<void> register({
     required String nome,
     required String email,
@@ -68,8 +63,7 @@ class AuthService {
       }),
     );
 
-    if (response.statusCode != 201) { // 201 Created
-      // Tenta decodificar uma mensagem de erro do backend
+    if (response.statusCode != 201) {
       try {
         final errorBody = jsonDecode(response.body);
         final message = errorBody['message'] ?? 'E-mail indisponível ou dados inválidos.';

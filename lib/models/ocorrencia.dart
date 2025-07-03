@@ -9,7 +9,7 @@ class Ocorrencia {
   final DateTime data;
   final String? descricao;
   final List<FotoOcorrencia> fotos;
-  final Propriedade? propriedade; // Pode ser nulo dependendo do contexto da API
+  final Propriedade? propriedade;
   final List<Incidente> incidentes;
 
   const Ocorrencia({
@@ -22,9 +22,7 @@ class Ocorrencia {
     required this.incidentes,
   });
 
-  /// Cria uma instância de Ocorrencia a partir de um JSON de forma segura.
   factory Ocorrencia.fromJson(Map<String, dynamic> json) {
-    // Função auxiliar para processar listas de forma segura
     List<T> parseList<T>(String key, T Function(dynamic) fromJson) {
       return (json[key] as List<dynamic>?)?.map(fromJson).toList() ?? [];
     }
@@ -34,15 +32,14 @@ class Ocorrencia {
 
       tipoOcorrencia: json['tipoOcorrencia'] != null
           ? TipoOcorrencia.fromJson(json['tipoOcorrencia'])
-          : const TipoOcorrencia(id: '', nome: 'Desconhecido'), // Valor padrão
+          : const TipoOcorrencia(id: '', nome: 'Desconhecido'),
 
       data: json['data'] != null
           ? DateTime.tryParse(json['data'].toString()) ?? DateTime.now()
-          : DateTime.now(), // Valor padrão
+          : DateTime.now(),
 
       descricao: json['descricao'] as String?,
 
-      // A propriedade pode não vir em todas as respostas da API, então tratamos o nulo.
       propriedade: json['propriedade'] != null
           ? Propriedade.fromJson(json['propriedade'])
           : null,
@@ -52,15 +49,14 @@ class Ocorrencia {
     );
   }
 
-  /// Converte a instância do objeto Dart para um mapa JSON.
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'tipoOcorrencia': tipoOcorrencia.toJson(),
-      'data': data.toIso8601String().split('T')[0], // Envia apenas a data
+      'data': data.toIso8601String().split('T')[0],
       'descricao': descricao,
       'fotos': fotos.map((foto) => foto.toJson()).toList(),
-      'propriedade': propriedade?.toJson(), // Usa o operador '?' para segurança
+      'propriedade': propriedade?.toJson(),
       'incidentes': incidentes.map((incidente) => incidente.toJson()).toList(),
     };
   }

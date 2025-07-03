@@ -4,27 +4,32 @@ import 'package:location/location.dart';
 
 class FullMapPage extends StatefulWidget {
   final LatLng coordenadaInicial;
+  final bool isReadOnly;
 
-  const FullMapPage({super.key, required this.coordenadaInicial});
+  const FullMapPage({
+    super.key,
+    required this.coordenadaInicial,
+    this.isReadOnly = false,
+  });
 
   @override
   State<FullMapPage> createState() => _FullMapPageState();
 }
 
 class _FullMapPageState extends State<FullMapPage> {
-  // O GoogleMapController é a chave para interagir com o mapa programaticamente.
   GoogleMapController? _mapController;
 
-  // A coordenada selecionada agora é atualizada quando o mapa para de se mover.
   late LatLng _coordenadaSelecionada;
+
+  late LatLng _lastMapPosition;
 
   @override
   void initState() {
     super.initState();
     _coordenadaSelecionada = widget.coordenadaInicial;
+    _lastMapPosition = widget.coordenadaInicial;
   }
 
-  /// Leva o mapa para a localização atual do dispositivo.
   Future<void> _irParaMinhaLocalizacao() async {
     final location = Location();
     try {
@@ -45,75 +50,64 @@ class _FullMapPageState extends State<FullMapPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Selecionar Localização'),
+        title: Text(widget.isReadOnly ? 'Visualizar Localização' : 'Selecionar Localização'),
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
       ),
       body: Stack(
         alignment: Alignment.center,
         children: [
-          // O Mapa ocupa todo o espaço
           GoogleMap(
             initialCameraPosition: CameraPosition(
               target: _coordenadaSelecionada,
               zoom: 16,
             ),
-            onMapCreated: (controller) => _mapController = controller,
-            // ATUALIZAÇÃO DE PERFORMANCE: Usamos onCameraIdle
-            // Isso atualiza a coordenada apenas quando o usuário para de arrastar o mapa.
-            onCameraIdle: () async {
-              if (_mapController != null) {
-                // Pega a lat/lng do centro da tela do mapa
-                final centerLatLng = await _mapController!.getLatLng(
-                  ScreenCoordinate(
-                    x: MediaQuery.of(context).size.width.floor() ~/ 2,
-                    y: MediaQuery.of(context).size.height.floor() ~/ 2,
-                  ),
-                );
-                setState(() {
-                  _coordenadaSelecionada = centerLatLng;
-                });
-              }
+            onMapCreated: (controller) {
+              _mapController = controller;
             },
-            myLocationButtonEnabled: false, // Desativamos o botão padrão
-            myLocationEnabled: true, // Mostra o ponto azul da localização do usuário
-          ),
 
-          // 1. O PINO CENTRAL FIXO: Este ícone nunca se move.
-          const IgnorePointer(
-            child: Icon(
-              Icons.location_pin,
-              color: Colors.red,
-              size: 50,
-            ),
+            onCameraMove: widget.isReadOnly ? null : (position) {
+              _lastMapPosition = position.target;
+            },
+            onCameraIdle: widget.isReadOnly ? null : () {
+              setState(() {
+                _coordenadaSelecionada = _lastMapPosition;
+              });
+            },
+            markers: widget.isReadOnly
+                ? {Marker(markerId: const MarkerId('marcador'), position: _coordenadaSelecionada)}
+                : {},
+            myLocationButtonEnabled: false,
+            myLocationEnabled: true,
           ),
-
-          // 2. BOTÕES DE AÇÃO: Alinhados no canto inferior direito.
-          Positioned(
-            bottom: 30,
-            right: 16,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 3. NOVO BOTÃO: Ir para a localização atual
-                FloatingActionButton(
-                  heroTag: 'myLocation',
-                  onPressed: _irParaMinhaLocalizacao,
-                  child: const Icon(Icons.my_location),
-                ),
-                const SizedBox(height: 16),
-                // Botão de confirmação melhorado
-                FloatingActionButton.extended(
-                  heroTag: 'confirmLocation',
-                  onPressed: () => Navigator.pop(context, _coordenadaSelecionada),
-                  label: const Text('Confirmar'),
-                  icon: const Icon(Icons.check),
-                  backgroundColor: Colors.teal,
-                  foregroundColor: Colors.white,
-                ),
-              ],
+          if (!widget.isReadOnly)
+            const IgnorePointer(
+              child: Icon(Icons.location_pin, color: Colors.red, size: 50),
             ),
-          ),
+          if (!widget.isReadOnly)
+            Positioned(
+              bottom: 30,
+              right: 16,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FloatingActionButton(
+                    heroTag: 'myLocation',
+                    onPressed: _irParaMinhaLocalizacao,
+                    child: const Icon(Icons.my_location),
+                  ),
+                  const SizedBox(height: 16),
+                  FloatingActionButton.extended(
+                    heroTag: 'confirmLocation',
+                    onPressed: () => Navigator.pop(context, _coordenadaSelecionada),
+                    label: const Text('Confirmar'),
+                    icon: const Icon(Icons.check),
+                    backgroundColor: Colors.teal,
+                    foregroundColor: Colors.white,
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );

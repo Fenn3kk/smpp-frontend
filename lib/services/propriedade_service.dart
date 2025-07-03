@@ -9,6 +9,15 @@ import '../models/propriedade.dart';
 
 class PropriedadeService {
 
+  Future<Map<String, String>> _getAuthHeaders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt') ?? '';
+    return {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json; charset=UTF-8',
+    };
+  }
+
   Future<String> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('jwt') ?? '';
@@ -25,10 +34,22 @@ class PropriedadeService {
 
     if (response.statusCode == 200) {
       final List<dynamic> jsonList = jsonDecode(utf8.decode(response.bodyBytes));
-      // Usa o modelo Propriedade para converter o JSON em uma lista de objetos
       return jsonList.map((json) => Propriedade.fromJson(json)).toList();
     } else {
       throw Exception('Falha ao carregar as propriedades: ${response.statusCode}');
+    }
+  }
+
+  Future<List<Propriedade>> buscarTodasPropriedades() async {
+    final url = Uri.parse('${AppConfig.baseUrl}/propriedades/todas');
+    final headers = await _getAuthHeaders();
+    final response = await http.get(url, headers: headers);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = jsonDecode(utf8.decode(response.bodyBytes));
+      return jsonList.map((json) => Propriedade.fromJson(json)).toList();
+    } else {
+      throw Exception('Falha ao carregar todas as propriedades: ${response.statusCode}');
     }
   }
 
@@ -57,7 +78,6 @@ class PropriedadeService {
     throw Exception('Falha ao carregar cidades');
   }
 
-  /// Busca a lista de todas as Atividades.
   Future<List<Atividade>> fetchAtividades() async {
     final token = await _getToken();
     final url = Uri.parse('${AppConfig.baseUrl}/atividades');
@@ -69,7 +89,6 @@ class PropriedadeService {
     throw Exception('Falha ao carregar atividades');
   }
 
-  /// Busca a lista de todas as Vulnerabilidades.
   Future<List<Vulnerabilidade>> fetchVulnerabilidades() async {
     final token = await _getToken();
     final url = Uri.parse('${AppConfig.baseUrl}/vulnerabilidades');
@@ -81,7 +100,6 @@ class PropriedadeService {
     throw Exception('Falha ao carregar vulnerabilidades');
   }
 
-  /// Cria uma nova propriedade enviando o DTO.
   Future<void> createPropriedade(Map<String, dynamic> propriedadeDto) async {
     final token = await _getToken();
     final url = Uri.parse('${AppConfig.baseUrl}/propriedades');
@@ -95,7 +113,7 @@ class PropriedadeService {
       body: jsonEncode(propriedadeDto),
     );
 
-    if (response.statusCode != 201) { // 201 Created é o esperado
+    if (response.statusCode != 201) {
       throw Exception('Falha ao criar propriedade: ${response.statusCode}');
     }
   }
@@ -113,7 +131,7 @@ class PropriedadeService {
       body: jsonEncode(propriedadeDto),
     );
 
-    if (response.statusCode != 200) { // 200 OK é o esperado
+    if (response.statusCode != 200) {
       throw Exception('Falha ao atualizar propriedade: ${response.statusCode}');
     }
   }

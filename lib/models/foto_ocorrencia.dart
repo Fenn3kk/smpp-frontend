@@ -1,29 +1,28 @@
 class FotoOcorrencia {
   final String id;
   final String? nome; // Nome original do arquivo, pode ser nulo
-  final String caminho; // Caminho/nome do arquivo no servidor
+  final String url;  // O campo agora se chama 'url' para bater com a API.
 
   const FotoOcorrencia({
     required this.id,
     this.nome,
-    required this.caminho,
+    required this.url,
   });
 
-  /// Cria uma instância a partir de um JSON de forma segura.
   factory FotoOcorrencia.fromJson(Map<String, dynamic> json) {
     return FotoOcorrencia(
-      id: json['id']?.toString() ?? '',
-      nome: json['nome'] as String?, // O nome pode ser nulo
-      caminho: json['caminho']?.toString() ?? '',
+
+      id: json.containsKey('id') && json['id'] != null ? json['id'].toString() : '',
+      nome: json['nome'] as String?,
+      url: json.containsKey('url') && json['url'] != null ? json['url'].toString() : '',
     );
   }
 
-  /// Converte a instância para um mapa JSON.
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'nome': nome,
-      'caminho': caminho,
+      'url': url,
     };
   }
 }

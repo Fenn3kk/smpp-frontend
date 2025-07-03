@@ -13,13 +13,11 @@ class _CadastroAdminPageState extends State<CadastroAdminPage> {
   final _formKey = GlobalKey<FormState>();
   final _usuarioService = UsuarioService();
 
-  // Controllers para os campos do formulário
   final _nomeController = TextEditingController();
   final _emailController = TextEditingController();
   final _telefoneController = TextEditingController();
   final _senhaController = TextEditingController();
 
-  // Variáveis de estado da UI
   bool _senhaVisivel = false;
   bool _isLoading = false;
   String? _erro;
@@ -33,7 +31,6 @@ class _CadastroAdminPageState extends State<CadastroAdminPage> {
       _erro = null;
     });
 
-    // Monta o DTO com os dados do formulário
     final userDto = {
       'nome': _nomeController.text.trim(),
       'email': _emailController.text.trim(),
@@ -43,14 +40,13 @@ class _CadastroAdminPageState extends State<CadastroAdminPage> {
     };
 
     try {
-      // Chama o método do serviço para criar o usuário
       await _usuarioService.createUserByAdmin(userDto);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Usuário cadastrado com sucesso!'), backgroundColor: Colors.green),
       );
-      Navigator.of(context).pop(); // Volta para a tela anterior
+      Navigator.of(context).pop();
 
     } catch (e) {
       setState(() {
@@ -111,7 +107,6 @@ class _CadastroAdminPageState extends State<CadastroAdminPage> {
                 controller: _telefoneController,
                 decoration: const InputDecoration(labelText: 'Telefone', border: OutlineInputBorder(), prefixIcon: Icon(Icons.phone_outlined)),
                 keyboardType: TextInputType.phone,
-                // USA A MÁSCARA REUTILIZÁVEL
                 inputFormatters: [AppFormatters.dynamicPhoneMask],
                 validator: (v) {
                   final digits = v?.replaceAll(RegExp(r'\D'), '') ?? '';

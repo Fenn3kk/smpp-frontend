@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smpp_flutter/pages/propriedade_list_page.dart';
+import 'package:smpp_flutter/pages/relatorio_page.dart';
 import 'package:smpp_flutter/providers/propriedade_provider.dart';
 import 'package:smpp_flutter/routes/app_rotas.dart';
 import '../widgets/user_drawer.dart';
@@ -43,8 +44,6 @@ class _HomePageState extends State<HomePage> {
     final foiCriado = await Navigator.pushNamed(context, AppRoutes.propriedadeCreate);
 
     if (foiCriado == true && mounted) {
-      // Após a criação, simplesmente notifica o provider para buscar os dados atualizados.
-      // 'listen: false' é usado porque só estamos chamando um método, não reconstruindo a HomePage.
       Provider.of<PropriedadeProvider>(context, listen: false).fetchPropriedades();
     }
   }
@@ -63,8 +62,8 @@ class _HomePageState extends State<HomePage> {
         controller: _pageController,
         onPageChanged: (index) => setState(() => _selectedIndex = index),
         children: const [
-          PropriedadesPage(), // A página de propriedades continua aqui
-          Center(child: Text('Relatórios', style: TextStyle(fontSize: 18))),
+          PropriedadesPage(),
+          RelatoriosPage(),
         ],
       ),
       floatingActionButton: _selectedIndex == 0

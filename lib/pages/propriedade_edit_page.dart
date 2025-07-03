@@ -12,7 +12,6 @@ import 'package:smpp_flutter/services/propriedade_service.dart';
 import 'package:smpp_flutter/widgets/app_formatters.dart';
 
 class EditarPropriedadePage extends StatefulWidget {
-  // 1. O CONSTRUTOR AGORA RECEBE UM OBJETO 'Propriedade'
   final Propriedade propriedade;
 
   const EditarPropriedadePage({super.key, required this.propriedade});
@@ -47,7 +46,6 @@ class _EditarPropriedadePageState extends State<EditarPropriedadePage> {
   @override
   void initState() {
     super.initState();
-    // 2. O FORMULÁRIO É POPULADO COM OS DADOS DO OBJETO 'Propriedade'
     _nomeController = TextEditingController(text: widget.propriedade.nome);
     _proprietarioController = TextEditingController(text: widget.propriedade.proprietario);
     _telefoneController = TextEditingController(text: widget.propriedade.telefoneProprietario);
@@ -71,7 +69,6 @@ class _EditarPropriedadePageState extends State<EditarPropriedadePage> {
   }
 
   Future<void> _carregarOpcoes() async {
-    // 3. A LÓGICA DE REDE USA O 'PropriedadeService'
     try {
       final results = await Future.wait([
         _service.fetchCidades(),
@@ -93,12 +90,9 @@ class _EditarPropriedadePageState extends State<EditarPropriedadePage> {
   }
 
   Future<void> _salvarAlteracoes() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_coordenadaSelecionada == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selecione a localização no mapa.')));
+    if (!_formKey.currentState!.validate() || _coordenadaSelecionada == null) {
       return;
     }
-
     setState(() => _isSaving = true);
 
     final propriedadeDto = {
@@ -115,11 +109,10 @@ class _EditarPropriedadePageState extends State<EditarPropriedadePage> {
       await _service.updatePropriedade(widget.propriedade.id, propriedadeDto);
       if (!mounted) return;
 
-      // 4. USA O PROVIDER PARA NOTIFICAR O APP SOBRE A MUDANÇA
       await Provider.of<PropriedadeProvider>(context, listen: false).fetchPropriedades();
 
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Propriedade atualizada com sucesso!'), backgroundColor: Colors.green));
-      Navigator.of(context).pop(true); // Retorna true para a tela anterior
+      Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
@@ -130,9 +123,12 @@ class _EditarPropriedadePageState extends State<EditarPropriedadePage> {
 
   void _abrirMapaCompleto() async {
     final LatLng? resultado = await Navigator.pushNamed(
-        context,
-        AppRoutes.fullMap,
-        arguments: _coordenadaSelecionada ?? const LatLng(-29.68, -53.80)
+      context,
+      AppRoutes.fullMap,
+      arguments: {
+        'coordenada': _coordenadaSelecionada ?? const LatLng(-29.68, -53.80),
+        'isReadOnly': false,
+      },
     ) as LatLng?;
 
     if (resultado != null) {
@@ -222,7 +218,6 @@ class _EditarPropriedadePageState extends State<EditarPropriedadePage> {
                     controller: _telefoneController,
                     decoration: const InputDecoration(labelText: 'Telefone do Proprietário *', border: OutlineInputBorder()),
                     keyboardType: TextInputType.phone,
-                    // 5. A MÁSCARA REUTILIZÁVEL É USADA AQUI
                     inputFormatters: [AppFormatters.dynamicPhoneMask],
                     validator: (v) {
                       if (_souProprietario) return null;

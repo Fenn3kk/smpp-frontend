@@ -4,7 +4,7 @@ class InfoRowWidget extends StatelessWidget {
   final IconData icon;
   final String label;
   final String? value;
-  final bool fade; // Para controlar o efeito de fade no texto longo
+  final bool fade;
 
   const InfoRowWidget({
     super.key,
@@ -16,8 +16,6 @@ class InfoRowWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // A lógica que antes era uma função de ajuda, agora é o método build
-    // deste widget independente.
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(

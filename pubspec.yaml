@@ -34,6 +34,10 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
+  pdf: ^3.10.8         # O motor principal para criar o documento PDF
+  printing: ^5.12.0    # Para visualizar, imprimir e compartilhar o PDF gerado
+  intl: ^0.20.2        # Para formatar datas nos relatórios
+
   image_picker: ^0.8.7+4
 
   google_maps_flutter: ^2.5.0
@@ -56,6 +60,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   provider: ^6.1.5
+  http_parser: ^4.1.2
 
 dev_dependencies:
   flutter_test:

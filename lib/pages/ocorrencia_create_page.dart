@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:multi_select_flutter/chip_display/multi_select_chip_display.dart';
+import 'package:multi_select_flutter/dialog/multi_select_dialog_field.dart';
+import 'package:multi_select_flutter/util/multi_select_item.dart';
 import 'package:smpp_flutter/models/incidente.dart';
 import 'package:smpp_flutter/models/tipo_ocorrencia.dart';
 import '../services/ocorrencia_service.dart';
@@ -20,14 +23,14 @@ class _OcorrenciaFormPageState extends State<OcorrenciaFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _descricaoController = TextEditingController();
 
-  String? _tipoSelecionado;
+  String? _tipoSelecionadoId;
   DateTime? _dataSelecionada;
-  List<XFile> _fotos = [];
+  final List<XFile> _fotos = [];
   final ImagePicker _picker = ImagePicker();
-  List<String> _incidentesSelecionados = [];
+  List<String> _incidentesSelecionadosIds = [];
 
-  List<Incidente> _incidentesDisponiveis = [];
   List<TipoOcorrencia> _tiposDisponiveis = [];
+  List<Incidente> _incidentesDisponiveis = [];
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -35,10 +38,14 @@ class _OcorrenciaFormPageState extends State<OcorrenciaFormPage> {
   @override
   void initState() {
     super.initState();
-    _carregarDadosIniciais();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _carregarDadosIniciais();
+    });
   }
 
   Future<void> _carregarDadosIniciais() async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     try {
       final results = await Future.wait([
         _ocorrenciaService.buscarTiposOcorrencia(),
@@ -53,8 +60,8 @@ class _OcorrenciaFormPageState extends State<OcorrenciaFormPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao carregar dados: ${e.toString()}')),
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text('Erro ao carregar dados: ${e.toString()}'), backgroundColor: Colors.red),
       );
     }
   }
@@ -74,39 +81,27 @@ class _OcorrenciaFormPageState extends State<OcorrenciaFormPage> {
       lastDate: hoje,
     );
     if (data != null) {
-      setState(() {
-        _dataSelecionada = data;
-      });
+      setState(() => _dataSelecionada = data);
     }
   }
 
-  Future<void> _selecionarFotoGaleria() async {
-    final XFile? foto = await _picker.pickImage(source: ImageSource.gallery);
+  Future<void> _pegarImagem(ImageSource source) async {
+    final XFile? foto = await _picker.pickImage(source: source, imageQuality: 80);
     if (foto != null) {
-      setState(() {
-        _fotos.add(foto);
-      });
-    }
-  }
-
-  Future<void> _tirarFotoCamera() async {
-    final XFile? foto = await _picker.pickImage(source: ImageSource.camera);
-    if (foto != null) {
-      setState(() {
-        _fotos.add(foto);
-      });
+      setState(() => _fotos.add(foto));
     }
   }
 
   void _removerFoto(int index) {
-    setState(() {
-      _fotos.removeAt(index);
-    });
+    setState(() => _fotos.removeAt(index));
   }
 
   Future<void> _salvarOcorrencia() async {
-    if (!_formKey.currentState!.validate() || _dataSelecionada == null || _tipoSelecionado == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    if (!_formKey.currentState!.validate() || _dataSelecionada == null || _tipoSelecionadoId == null) {
+      scaffoldMessenger.showSnackBar(
         const SnackBar(content: Text('Preencha todos os campos obrigatórios')),
       );
       return;
@@ -114,37 +109,28 @@ class _OcorrenciaFormPageState extends State<OcorrenciaFormPage> {
 
     setState(() => _isSaving = true);
 
-    // Monta o DTO que será enviado como JSON
     final ocorrenciaDto = {
-      'tipoOcorrenciaId': _tipoSelecionado!,
+      'tipoOcorrenciaId': _tipoSelecionadoId,
       'data': _dataSelecionada!.toIso8601String().split('T')[0],
       'descricao': _descricaoController.text,
       'propriedadeId': widget.propriedadeId,
-      'incidentes': _incidentesSelecionados,
+      'incidentes': _incidentesSelecionadosIds,
     };
 
     try {
-      // Chama o método do serviço, passando o DTO e as fotos
-      await _ocorrenciaService.salvarOcorrencia(
-        ocorrenciaDto: ocorrenciaDto,
-        fotos: _fotos,
-      );
-
+      await _ocorrenciaService.salvarComFotos(ocorrenciaDto: ocorrenciaDto, fotos: _fotos);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ocorrência salva com sucesso!')),
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(content: Text('Ocorrência salva com sucesso!'), backgroundColor: Colors.green),
       );
-      Navigator.of(context).pop();
-
+      navigator.pop(true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
       );
     } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -154,76 +140,45 @@ class _OcorrenciaFormPageState extends State<OcorrenciaFormPage> {
       appBar: AppBar(
         title: const Text('Cadastrar Ocorrência'),
         backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Padding(
+          : SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
-          child: ListView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 5),
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(
-                  labelText: 'Tipo de Ocorrência *',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.category),
-                ),
-                items: _tiposDisponiveis.map((tipo) {
-                  return DropdownMenuItem<String>(
-                    value: tipo.id, // O valor é o ID do tipo
-                    child: Text(tipo.nome), // O texto exibido é o nome
-                  );
-                }).toList(),
-                value: _tipoSelecionado,
-                onChanged: (val) => setState(() => _tipoSelecionado = val),
-                validator: (val) => val == null || val.isEmpty
-                    ? 'Selecione um tipo'
-                    : null,
+                decoration: const InputDecoration(labelText: 'Tipo de Ocorrência *', border: OutlineInputBorder(), prefixIcon: Icon(Icons.category_outlined)),
+                items: _tiposDisponiveis.map((tipo) => DropdownMenuItem<String>(value: tipo.id, child: Text(tipo.nome))).toList(),
+                value: _tipoSelecionadoId,
+                onChanged: (val) => setState(() => _tipoSelecionadoId = val),
+                validator: (val) => val == null || val.isEmpty ? 'Selecione um tipo' : null,
               ),
               const SizedBox(height: 16),
-
-              // Descrição
               TextFormField(
                 controller: _descricaoController,
-                decoration: const InputDecoration(
-                  labelText: 'Descrição da Ocorrência *',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.description),
-                ),
-                maxLines: 2,
-                maxLength: 100,
-                validator: (value) =>
-                value == null || value.isEmpty ? 'Digite a descrição' : null,
+                decoration: const InputDecoration(labelText: 'Descrição da Ocorrência *', border: OutlineInputBorder(), prefixIcon: Icon(Icons.description_outlined)),
+                maxLines: 3,
+                validator: (v) => v == null || v.isEmpty ? 'Digite a descrição' : null,
               ),
               const SizedBox(height: 16),
-
-              // Data
               InkWell(
                 onTap: _selecionarData,
                 child: InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'Data da Ocorrência *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.calendar_today),
-                  ),
+                  decoration: const InputDecoration(labelText: 'Data da Ocorrência *', border: OutlineInputBorder(), prefixIcon: Icon(Icons.calendar_today_outlined)),
                   child: Text(
                     _dataSelecionada == null
                         ? 'Selecione uma data'
                         : '${_dataSelecionada!.day.toString().padLeft(2, '0')}/${_dataSelecionada!.month.toString().padLeft(2, '0')}/${_dataSelecionada!.year}',
-                    style: TextStyle(
-                      color: _dataSelecionada == null
-                          ? Colors.grey[600]
-                          : Colors.black,
-                    ),
                   ),
                 ),
               ),
               const SizedBox(height: 24),
-
-              // Fotos
-              const Text('Fotos:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Fotos:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               const SizedBox(height: 8),
               SizedBox(
                 height: 110,
@@ -232,128 +187,85 @@ class _OcorrenciaFormPageState extends State<OcorrenciaFormPage> {
                   itemCount: _fotos.length + 1,
                   itemBuilder: (context, index) {
                     if (index == _fotos.length) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Column(
-                          children: [
-                            FloatingActionButton(
-                              heroTag: 'galeria',
-                              onPressed: _selecionarFotoGaleria,
-                              child: const Icon(Icons.photo_library),
-                              mini: true,
-                            ),
-                            const SizedBox(height: 4),
-                            FloatingActionButton(
-                              heroTag: 'camera',
-                              onPressed: _tirarFotoCamera,
-                              child: const Icon(Icons.camera_alt),
-                              mini: true,
-                            ),
-                          ],
-                        ),
+                      return Row(
+                        children: [
+                          _buildAddPhotoButton(onPressed: () => _pegarImagem(ImageSource.camera), icon: Icons.camera_alt_outlined, label: 'Câmera'),
+                          const SizedBox(width: 10),
+                          _buildAddPhotoButton(onPressed: () => _pegarImagem(ImageSource.gallery), icon: Icons.photo_library_outlined, label: 'Galeria'),
+                        ],
                       );
                     }
-
-                    return Stack(
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 8),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.grey),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.file(
-                              File(_fotos[index].path),
-                              width: 100,
-                              height: 100,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          top: 0,
-                          right: 0,
-                          child: GestureDetector(
-                            onTap: () => _removerFoto(index),
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: Colors.black54,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.close,
-                                  color: Colors.white, size: 18),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
+                    return _buildPhotoPreview(index);
                   },
                 ),
               ),
               const SizedBox(height: 24),
-
-              // Incidentes
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Incidentes Relacionados:',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
-                      const SizedBox(height: 8),
-                      ..._incidentesDisponiveis.map((incidente) {
-                        final id = incidente.id;
-                        final nome = incidente.nome;
-                        final selecionado = _incidentesSelecionados.contains(id);
-
-                        return CheckboxListTile(
-                          title: Text(nome),
-                          value: selecionado,
-                          onChanged: (bool? val) {
-                            setState(() {
-                              if (val == true) {
-                                _incidentesSelecionados.add(id);
-                              } else {
-                                _incidentesSelecionados.remove(id);
-                              }
-                            });
-                          },
-                        );
-                      }).toList(),
-                    ],
-                  ),
-                ),
+              const Text('Incidentes Relacionados:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 8),
+              MultiSelectDialogField(
+                items: _incidentesDisponiveis.map((i) => MultiSelectItem<String>(i.id, i.nome)).toList(),
+                title: const Text('Incidentes'),
+                buttonText: const Text('Selecione os incidentes'),
+                onConfirm: (results) {
+                  _incidentesSelecionadosIds = results.cast<String>();
+                },
+                initialValue: _incidentesSelecionadosIds,
+                chipDisplay: MultiSelectChipDisplay(),
+                decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(4)),
               ),
               const SizedBox(height: 24),
-
-              // Botão salvar
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _isSaving ? null : _salvarOcorrencia,
-                  icon: _isSaving
-                      ? Container(width: 24, height: 24, padding: const EdgeInsets.all(2.0), child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 3,))
-                      : const Icon(Icons.save),
-                  label: Text(_isSaving ? 'Salvando...' : 'Salvar Ocorrência'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: Colors.teal,
-                    foregroundColor: Colors.white,
-                    textStyle: const TextStyle(fontSize: 16),
-                  ),
+              ElevatedButton.icon(
+                onPressed: _isSaving ? null : _salvarOcorrencia,
+                icon: _isSaving
+                    ? Container(width: 20, height: 20, child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                    : const Icon(Icons.save),
+                label: Text(_isSaving ? 'Salvando...' : 'Salvar Ocorrência'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAddPhotoButton({required VoidCallback onPressed, required IconData icon, required String label}) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        ElevatedButton(
+          onPressed: onPressed,
+          style: ElevatedButton.styleFrom(shape: const CircleBorder(), padding: const EdgeInsets.all(16)),
+          child: Icon(icon),
+        ),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(fontSize: 12)),
+      ],
+    );
+  }
+
+  Widget _buildPhotoPreview(int index) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: Stack(
+        alignment: Alignment.topRight,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.file(File(_fotos[index].path), width: 100, height: 100, fit: BoxFit.cover),
+          ),
+          IconButton(
+            onPressed: () => _removerFoto(index),
+            icon: const Icon(Icons.cancel_rounded, color: Colors.white),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
       ),
     );
   }

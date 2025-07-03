@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:smpp_flutter/models/usuario.dart';
 import 'package:smpp_flutter/providers/usuario_provider.dart';
 import 'package:smpp_flutter/routes/app_rotas.dart';
+import 'package:smpp_flutter/services/auth_service.dart';
 import 'package:smpp_flutter/widgets/app_formatters.dart';
 
 class EditarUsuarioPage extends StatefulWidget {
@@ -14,36 +14,50 @@ class EditarUsuarioPage extends StatefulWidget {
 
 class _EditarUsuarioPageState extends State<EditarUsuarioPage> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _nomeController;
-  late final TextEditingController _emailController;
-  late final TextEditingController _telefoneController;
-  final _senhaController = TextEditingController();
-  final _senhaAtualController = TextEditingController();
+  final _authService = AuthService();
 
-  bool _senhaVisivel = false;
+  final _nomeController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _telefoneController = TextEditingController();
+  final _senhaController = TextEditingController();
+
+  bool _isAuthenticated = false;
   bool _isSaving = false;
   String? _tipoUsuarioSelecionado;
+  String _senhaAtualConfirmada = '';
 
   @override
   void initState() {
     super.initState();
-    // Popula o formulário com os dados do provider.
-    final usuario = Provider.of<UsuarioProvider>(context, listen: false).currentUser;
-    _nomeController = TextEditingController(text: usuario?.nome ?? '');
-    _emailController = TextEditingController(text: usuario?.email ?? '');
-    _telefoneController = TextEditingController(text: usuario?.telefone ?? '');
-    _tipoUsuarioSelecionado = usuario?.tipoUsuario ?? 'COMUM';
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _autenticarParaEditar();
+    });
+  }
+
+  Future<void> _autenticarParaEditar() async {
+    final navigator = Navigator.of(context);
+
+    final senhaConfirmada = await _pedirSenhaAtualComValidacao();
+
+    if (senhaConfirmada != null) {
+      final usuario = Provider.of<UsuarioProvider>(context, listen: false).currentUser;
+      _nomeController.text = usuario?.nome ?? '';
+      _emailController.text = usuario?.email ?? '';
+      _telefoneController.text = usuario?.telefone ?? '';
+      _tipoUsuarioSelecionado = usuario?.tipoUsuario ?? 'COMUM';
+      _senhaAtualConfirmada = senhaConfirmada;
+      setState(() => _isAuthenticated = true);
+    } else {
+      navigator.pop();
+    }
   }
 
   Future<void> _salvar() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Se a senha foi alterada, pede a senha atual para confirmação.
-    if (_senhaController.text.isNotEmpty) {
-      final senhaAtual = await _pedirSenhaAtual();
-      if (senhaAtual == null || senhaAtual.isEmpty) return; // Usuário cancelou
-      _senhaAtualController.text = senhaAtual;
-    }
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final provider = Provider.of<UsuarioProvider>(context, listen: false);
 
     setState(() => _isSaving = true);
 
@@ -52,57 +66,92 @@ class _EditarUsuarioPageState extends State<EditarUsuarioPage> {
       'email': _emailController.text.trim(),
       'telefone': _telefoneController.text,
       'tipoUsuario': _tipoUsuarioSelecionado,
-      // Envia a nova senha e a senha atual (se aplicável)
       'senha': _senhaController.text,
-      'senhaAtual': _senhaAtualController.text,
+      'senhaAtual': _senhaAtualConfirmada,
     };
 
     try {
-      await Provider.of<UsuarioProvider>(context, listen: false).updateUser(dto);
+      await provider.updateUser(dto);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dados atualizados com sucesso!'), backgroundColor: Colors.green));
-      Navigator.of(context).pop();
+      scaffoldMessenger.showSnackBar(const SnackBar(content: Text('Dados atualizados com sucesso!'), backgroundColor: Colors.green));
+      navigator.pop();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+      scaffoldMessenger.showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }
 
   Future<void> _excluir() async {
-    final senhaAtual = await _pedirSenhaAtual(title: 'Excluir Conta', content: 'Para sua segurança, digite sua senha atual para confirmar a exclusão da conta.');
-    if (senhaAtual == null || senhaAtual.isEmpty) return;
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final provider = Provider.of<UsuarioProvider>(context, listen: false);
 
     try {
-      await Provider.of<UsuarioProvider>(context, listen: false).deleteUser(senhaAtual);
+      await provider.deleteUser(_senhaAtualConfirmada);
       if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+      navigator.pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+      scaffoldMessenger.showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
     }
   }
 
-  Future<String?> _pedirSenhaAtual({String? title, String? content}) async {
+  Future<String?> _pedirSenhaAtualComValidacao() async {
+    final controller = TextEditingController();
+
     return showDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) {
-        final controller = TextEditingController();
-        return AlertDialog(
-          title: Text(title ?? 'Confirme sua Identidade'),
-          content: Text(content ?? 'Digite sua senha atual para continuar.'),
-          actions: [
-            TextField(controller: controller, obscureText: true, autofocus: true),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
+        String? dialogError;
+        bool isChecking = false;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Confirmar Identidade'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Para editar seu perfil, por favor, digite sua senha atual.'),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: controller,
+                    obscureText: true,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      labelText: 'Senha Atual',
+                      errorText: dialogError,
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
                 TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancelar')),
-                TextButton(onPressed: () => Navigator.of(ctx).pop(controller.text), child: const Text('Confirmar')),
+                ElevatedButton(
+                  onPressed: isChecking ? null : () async {
+                    setDialogState(() {
+                      isChecking = true;
+                      dialogError = null;
+                    });
+                    try {
+                      await _authService.reauthenticate(controller.text);
+                      if (!mounted) return;
+                      Navigator.of(ctx).pop(controller.text);
+                    } catch (e) {
+                      setDialogState(() {
+                        dialogError = 'Senha incorreta. Tente novamente.';
+                        isChecking = false;
+                      });
+                    }
+                  },
+                  child: isChecking ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Confirmar'),
+                ),
               ],
-            )
-          ],
+            );
+          },
         );
       },
     );
@@ -114,17 +163,22 @@ class _EditarUsuarioPageState extends State<EditarUsuarioPage> {
     _emailController.dispose();
     _telefoneController.dispose();
     _senhaController.dispose();
-    _senhaAtualController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Escuta o provider para saber se o usuário é admin.
+    if (!_isAuthenticated) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Editar Perfil'), backgroundColor: Colors.teal),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final bool souAdmin = Provider.of<UsuarioProvider>(context).isAdmin;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Editar Perfil'), backgroundColor: Colors.teal),
+      appBar: AppBar(title: const Text('Editar Perfil'), backgroundColor: Colors.teal, foregroundColor: Colors.white),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -137,7 +191,7 @@ class _EditarUsuarioPageState extends State<EditarUsuarioPage> {
               const SizedBox(height: 16),
               TextFormField(controller: _telefoneController, decoration: const InputDecoration(labelText: 'Telefone', border: OutlineInputBorder()), keyboardType: TextInputType.phone, inputFormatters: [AppFormatters.dynamicPhoneMask]),
               const SizedBox(height: 16),
-              TextFormField(controller: _senhaController, decoration: InputDecoration(labelText: 'Nova senha (deixe vazio para não alterar)', border: OutlineInputBorder(), suffixIcon: IconButton(icon: Icon(_senhaVisivel ? Icons.visibility : Icons.visibility_off), onPressed: () => setState(() => _senhaVisivel = !_senhaVisivel))), obscureText: !_senhaVisivel),
+              TextFormField(controller: _senhaController, decoration: const InputDecoration(labelText: 'Nova senha (deixe vazio para não alterar)', border: OutlineInputBorder()), obscureText: true),
               if (souAdmin) ...[
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
@@ -153,7 +207,7 @@ class _EditarUsuarioPageState extends State<EditarUsuarioPage> {
               const SizedBox(height: 32),
               Row(
                 children: [
-                  Expanded(child: ElevatedButton.icon(onPressed: _isSaving ? null : _salvar, icon: const Icon(Icons.save), label: const Text('Salvar'))),
+                  Expanded(child: ElevatedButton.icon(onPressed: _isSaving ? null : _salvar, icon: const Icon(Icons.save), label: const Text('Salvar Alterações'))),
                   const SizedBox(width: 16),
                   ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent), onPressed: _isSaving ? null : _excluir, icon: const Icon(Icons.delete_forever), label: const Text('Excluir Conta')),
                 ],
